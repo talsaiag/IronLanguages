@@ -342,7 +342,7 @@ type(name, bases, dict) -> creates a new type instance with the given name, base
                     meta = metaCls;
                     continue;
                 }
-                throw PythonOps.TypeError("metaclass conflict {0} and {1}", metaCls.Name, meta.Name);
+                throw PythonOps.TypeError("Error when calling the metaclass bases\n    metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases");
             }
             return meta;
         }
@@ -420,6 +420,25 @@ type(name, bases, dict) -> creates a new type instance with the given name, base
 
             _flags = res;
             return true;
+        }
+
+        /// <summary>
+        /// Check whether the current type is iterabel
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns>True if it is iterable</returns>
+        internal bool IsIterable(CodeContext context)
+        {
+            object _dummy = null;
+            if (PythonOps.TryGetBoundAttr(context,  this, "__iter__", out _dummy) &&
+                    !Object.ReferenceEquals(_dummy, NotImplementedType.Value)
+                && PythonOps.TryGetBoundAttr(context, this, "next", out _dummy) &&
+                    !Object.ReferenceEquals(_dummy, NotImplementedType.Value))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private void ClearAbstractMethodFlags(string name) {
@@ -535,7 +554,7 @@ type(name, bases, dict) -> creates a new type instance with the given name, base
         }
 
         private static bool TryReplaceExtensibleWithBase(Type curType, out Type newType) {
-            if (curType.IsGenericType &&
+            if (curType.GetTypeInfo().IsGenericType &&
                 curType.GetGenericTypeDefinition() == typeof(Extensible<>)) {
                 newType = curType.GetGenericArguments()[0];
                 return true;
@@ -2466,6 +2485,16 @@ type(name, bases, dict) -> creates a new type instance with the given name, base
             Dictionary<string, Type> methodMap = new Dictionary<string, Type>();
             bool hasExplicitIface = false;
             List<Type> nonCollidingInterfaces = new List<Type>(interfaces);
+
+            PythonType[] bases = new PythonType[_bases.Length + interfaces.Length];
+            Array.Copy(_bases, bases, _bases.Length);
+            for(int i = 0; i < interfaces.Length; i++) {
+                bases[i + _bases.Length] = PythonType.GetPythonType(interfaces[i]);
+            }
+
+            lock (_bases) {
+                _bases = bases;
+            }
             
             foreach (Type iface in interfaces) {
                 InterfaceMapping mapping = _underlyingSystemType.GetInterfaceMap(iface);
@@ -2517,7 +2546,7 @@ type(name, bases, dict) -> creates a new type instance with the given name, base
             if (hasExplicitIface) {
                 // add any non-colliding interfaces into the MRO
                 foreach (Type t in nonCollidingInterfaces) {
-                    Debug.Assert(t.IsInterface);
+                    Debug.Assert(t.GetTypeInfo().IsInterface);
 
                     mro.Add(DynamicHelpers.GetPythonTypeFromType(t));
                 }

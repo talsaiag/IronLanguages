@@ -31,7 +31,7 @@ using IronPython.Runtime.Exceptions;
 using IronPython.Runtime.Operations;
 using IronPython.Runtime.Types;
 
-#if FEATURE_PROCESS
+#if FEATURE_PIPES
 using System.IO.Pipes;
 #endif
 
@@ -985,7 +985,7 @@ namespace IronPython.Runtime {
         public void CloseIfLast(int fd, Stream stream) {
             objMapping.RemoveOnId(fd);
             if (-1 == objMapping.GetIdFromObject(stream)) {
-                stream.Close();
+                ((IDisposable)stream).Dispose();
             }
         }
 
@@ -1084,7 +1084,7 @@ namespace IronPython.Runtime {
             return res;
         }
 
-#if FEATURE_PROCESS
+#if FEATURE_PIPES
         internal static PythonFile[] CreatePipe(CodeContext/*!*/ context, SafePipeHandle hRead, SafePipeHandle hWrite) {
             var pythonContext = PythonContext.GetContext(context);
             var encoding = pythonContext.DefaultEncoding;
@@ -1217,23 +1217,24 @@ namespace IronPython.Runtime {
                     mode = "r+";
                 } else if (mode[0] == 'w' || mode[0] == 'a') {
                     throw PythonOps.ValueError("universal newline mode can only be used with modes starting with 'r'");
-                } else {
+                } else if (mode[0] != 'r') {
                     mode = "r" + mode;
                 }
             }
 
-            // process read/write/append
+            // process read/write/append and remove char from mode
             seekEnd = false;
             switch (mode[0]) {
-                case 'r': fmode = FileMode.Open; break;
-                case 'w': fmode = FileMode.Create; break;
-                case 'a': fmode = FileMode.Append; break;
+                case 'r': fmode = FileMode.Open; mode = mode.Remove(0, 1); break;
+                case 'w': fmode = FileMode.Create; mode = mode.Remove(0, 1); break;
+                case 'a': fmode = FileMode.Append; mode = mode.Remove(0, 1); break;
                 default:
                     throw PythonOps.ValueError("mode string must begin with one of 'r', 'w', 'a' or 'U', not '{0}'", inMode);
             }
 
             // process +
             if (mode.IndexOf('+') != -1) {
+                mode = mode.Remove(mode.IndexOf('+'), 1);
                 faccess = FileAccess.ReadWrite;
                 if (fmode == FileMode.Append) {
                     fmode = FileMode.OpenOrCreate;
@@ -1245,6 +1246,13 @@ namespace IronPython.Runtime {
                     case FileMode.Open: faccess = FileAccess.Read; break;
                     case FileMode.Append: faccess = FileAccess.Write; break;
                     default: throw new InvalidOperationException();
+                }
+            }
+
+            // Make some additional mode check after processing all valid modes.
+            if (mode.Length > 0) {
+                if (mode[0] != 'U' && mode[0] != 'b' && mode[0] != 't') {
+                    throw PythonOps.ValueError("Invalid mode ('{0}')", inMode);
                 }
             }
         }
@@ -1508,7 +1516,7 @@ namespace IronPython.Runtime {
                 _isOpen = false;
 
                 if (!IsConsole) {
-                    _stream.Close();
+                    ((IDisposable)_stream).Dispose();
                 }
 
                 PythonFileManager myManager = _context.RawFileManager;
@@ -2032,7 +2040,7 @@ namespace IronPython.Runtime {
         #endregion
     }
 
-#if FEATURE_PROCESS
+#if FEATURE_PIPES
     internal class AnonymousPipeStream : PipeStream {
         public AnonymousPipeStream(PipeDirection direction, SafePipeHandle sph) : base(direction, 0) {
             InitializeHandle(sph, true, false);

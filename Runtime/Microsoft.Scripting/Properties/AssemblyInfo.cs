@@ -46,16 +46,16 @@ using System.Security;
 
 [assembly: SecurityTransparent]
 
-#if CLR4 && !SILVERLIGHT && !WIN8
+#if FEATURE_SECURITY_RULES
 [assembly: SecurityRules(SecurityRuleSet.Level1)]
 #endif
 
 #if !SILVERLIGHT
-[assembly: AssemblyVersion("1.1.0.20")]
-[assembly: AssemblyFileVersion("1.1.0.21")]
+[assembly: AssemblyVersion("1.1.1.21")]
+[assembly: AssemblyFileVersion("1.1.1.21")]
 [assembly: AssemblyInformationalVersion("1.1")]
 #endif
 
-#if !SILVERLIGHT && !WP75
+#if FEATURE_APTCA
 [assembly: AllowPartiallyTrustedCallers]
 #endif

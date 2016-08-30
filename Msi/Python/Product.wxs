@@ -114,7 +114,6 @@ WHEN PERFORMING MAJOR IP UPGRADES (e.g., 2.5 => 2.6):
           <ComponentGroupRef Id='IronPythonPlatformsSl5'/>
         </Feature>
       </Feature>
-
       <Feature Id='IronPython_SilverlightTools' AllowAdvertise='no' Level='1' Title='Silverlight Tools' Description='Tools for developing Silverlight apps with IronPython (Chiron.exe et al.).'>
         <ComponentGroupRef Id='IronPythonSilverlightTools' />
       </Feature>
@@ -123,7 +122,7 @@ WHEN PERFORMING MAJOR IP UPGRADES (e.g., 2.5 => 2.6):
         <ComponentGroupRef Id='IronPythonTools' />
       </Feature>
 
-      <Feature Id='IronPython_Tutorial' AllowAdvertise='no' Level='1' Title='Documentation' Description='IronPython Tutorial'>
+      <Feature Id='IronPython_Tutorial' AllowAdvertise='no' Level='1' Title='Tutorial' Description='IronPython Tutorial'>
         <ComponentGroupRef Id='IronPythonTutorial' />
       </Feature>
     </Feature>

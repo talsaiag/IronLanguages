@@ -19,6 +19,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Generic = System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using IronPython.Compiler;
 using IronPython.Compiler.Ast;
@@ -502,6 +503,8 @@ namespace IronPython.Modules
                         return BitOr.Instance;
                     case PyOperator.Divide:
                         return Div.Instance;
+                    case PyOperator.TrueDivide:
+                        return TrueDivide.Instance;
                     case PyOperator.Equal:
                         return Eq.Instance;
                     case PyOperator.FloorDivide:
@@ -595,7 +598,6 @@ namespace IronPython.Modules
                 :this() {
                 _args = args;
                 _vararg = vararg;
-                _kwarg = kwarg;
                 _kwarg = kwarg;
                 _defaults = defaults;
             }
@@ -1655,6 +1657,12 @@ namespace IronPython.Modules
         public class Div : @operator
         {
             internal static Div Instance = new Div();
+        }
+
+        [PythonType]
+        public class TrueDivide : @operator 
+        {
+            internal static TrueDivide Instance = new TrueDivide();
         }
 
         [PythonType]
